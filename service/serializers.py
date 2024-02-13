@@ -1,12 +1,13 @@
 from rest_framework import serializers
 from .models import ReferralCode, Referrer
-from service.utils import generates_code
+from utils.utils import generates_code
 from django.shortcuts import get_object_or_404
+from utils.utils import is_valid_email
 
 
 class ReferralCodeSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
-    owner_id = serializers.IntegerField()
+    owner_id = serializers.IntegerField(required=False)
     code = serializers.CharField(max_length=20, read_only=True)
     created_at = serializers.DateField(read_only=True)
     valid_until = serializers.DateField()
@@ -17,6 +18,7 @@ class ReferralCodeSerializer(serializers.Serializer):
         validated_data['code'] = code
         if validated_data['is_active']:
             ReferralCode.objects.filter(owner_id=validated_data['owner_id']).update(is_active=False)
+
         return ReferralCode.objects.create(**validated_data)
 
     def update(self, instance, validated_data):
@@ -38,6 +40,13 @@ class ReferrerSerializer(serializers.Serializer):
     code_id = serializers.IntegerField(read_only=True)
     created_at = serializers.DateField(read_only=True)
 
+    def validate(self, data):
+        email = data["email"]
+        if not is_valid_email(email):
+            raise Exception(f"You cannot create an account using the"
+                            f" email address <{email}>, as it is not valid")
+        return data
+
     def create(self, validated_data):
         code_value = validated_data['code_value']
         code_obj = get_object_or_404(ReferralCode, code=code_value)
@@ -48,6 +57,5 @@ class ReferrerSerializer(serializers.Serializer):
 
         validated_data["owner_id"] = owner_id
         validated_data["code_id"] = code_id
-
 
         return Referrer.objects.create(**validated_data)

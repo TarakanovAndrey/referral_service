@@ -1,25 +1,19 @@
 from rest_framework import status
 from rest_framework.permissions import AllowAny
-from rest_framework.response import Response
-from rest_framework.views import APIView
-
 from .serializers import RegistrationSerializer
+from drfasyncview import AsyncAPIView
+from django.http import JsonResponse
+from asgiref.sync import sync_to_async
 
 
-class RegistrationAPIView(APIView):
-    """
-    Разрешить всем пользователям (аутентифицированным и нет) доступ к данному эндпоинту.
-    """
+class RegistrationAPIView(AsyncAPIView):
     permission_classes = (AllowAny,)
     serializer_class = RegistrationSerializer
 
+    @sync_to_async
     def post(self, request):
-        user = request.data.get('user', {})
 
-        # Паттерн создания сериализатора, валидации и сохранения - довольно
-        # стандартный, и его можно часто увидеть в реальных проектах.
-        serializer = self.serializer_class(data=user)
+        serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)

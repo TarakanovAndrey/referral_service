@@ -12,3 +12,9 @@ lint:
 
 install:
 	poetry install
+
+update:
+	poetry update
+
+test:
+	poetry run python ./manage.py test --verbosity 2
